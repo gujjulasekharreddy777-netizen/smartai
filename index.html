@@ -1,0 +1,1726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Waste AI — Scan It. Sort It. Save the Planet.</title>
+  <meta name="description" content="AI-powered waste management web application that classifies waste using genuine in-browser machine learning and provides safe recycling and disposal recommendations.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 6h18'/><path d='M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6'/><path d='M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2'/><line x1='10' y1='11' x2='10' y2='17'/><line x1='14' y1='11' x2='14' y2='17'/></svg>">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- TensorFlow.js & MobileNet (In-Browser Client-Side Neural Network) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
+
+  <style>
+    /* ==========================================================================
+       SMART WASTE AI — SUSTAINABLE DESIGN SYSTEM
+       ========================================================================== */
+    :root {
+      --primary: #10b981;
+      --primary-hover: #059669;
+      --primary-light: #ecfdf5;
+      --secondary: #0f766e;
+      --accent: #14b8a6;
+      --bg-main: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-card-subtle: #f1f5f9;
+      --border-color: #e2e8f0;
+      --border-subtle: #f1f5f9;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-light: #94a3b8;
+      --danger: #ef4444;
+      --font-family: 'Plus Jakarta Sans', 'Noto Sans Telugu', system-ui, -apple-system, sans-serif;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --radius-xl: 24px;
+      --radius-full: 9999px;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.09);
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      font-family: var(--font-family);
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      background: none;
+      outline: none;
+    }
+
+    .app-layout {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .main-content {
+      flex: 1;
+      padding-bottom: 4rem;
+    }
+
+    /* Navbar */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0.85rem 1.5rem;
+    }
+
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+    }
+
+    .brand-title {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+    }
+
+    .brand-title span:first-child {
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+
+    .brand-title .tagline-small {
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      list-style: none;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 600;
+      font-size: 0.925rem;
+      color: var(--text-muted);
+      padding: 0.5rem 0.85rem;
+      border-radius: var(--radius-sm);
+      transition: var(--transition);
+    }
+
+    .nav-item:hover, .nav-item.active {
+      color: var(--primary-hover);
+      background: var(--primary-light);
+      font-weight: 700;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .lang-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: 0.45rem 0.85rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-full);
+      background: white;
+      color: var(--text-main);
+      transition: var(--transition);
+    }
+
+    .lang-btn:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary-hover);
+    }
+
+    /* Buttons */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 0.85rem 1.85rem;
+      border-radius: var(--radius-lg);
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+      transition: var(--transition);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: white;
+      color: var(--text-main);
+      font-weight: 600;
+      font-size: 1rem;
+      padding: 0.85rem 1.6rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-card-subtle);
+      border-color: var(--text-muted);
+    }
+
+    /* Sections */
+    .section {
+      padding: 4rem 1.5rem;
+    }
+
+    .section-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 700px;
+      margin: 0 auto 3rem;
+    }
+
+    .section-title {
+      font-size: 2.15rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      margin-bottom: 0.75rem;
+    }
+
+    .section-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+    }
+
+    /* Hero */
+    .hero {
+      padding: 4.5rem 1.5rem 3.5rem;
+      background: linear-gradient(180deg, #ecfdf5 0%, #f8fafc 100%);
+      text-align: center;
+    }
+
+    .hero-container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: white;
+      padding: 0.4rem 1rem;
+      border-radius: var(--radius-full);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--secondary);
+      border: 1px solid #a7f3d0;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 1.5rem;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--primary);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    .hero-title {
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      color: #064e3b;
+      margin-bottom: 1.25rem;
+    }
+
+    .hero-subtitle {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 720px;
+      margin: 0 auto 2.25rem;
+      line-height: 1.65;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    /* Steps */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+    }
+
+    .step-card {
+      background: white;
+      border-radius: var(--radius-xl);
+      padding: 2.25rem 1.75rem;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      text-align: left;
+      transition: var(--transition);
+    }
+
+    .step-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: #a7f3d0;
+    }
+
+    .step-icon-wrap {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-lg);
+      background: var(--primary-light);
+      color: var(--primary-hover);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+    }
+
+    /* Category Cards */
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .cat-card {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .cat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .cat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.65rem;
+      border-radius: var(--radius-full);
+      margin-bottom: 1rem;
+      width: fit-content;
+    }
+
+    /* Benefits */
+    .benefits-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .benefit-card {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .benefit-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      background: #f0fdf4;
+      color: #16a34a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+
+    /* Scanner View */
+    .scanner-view {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    .scanner-card {
+      background: white;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+
+    .scanner-header {
+      padding: 1.75rem 2rem 1.25rem;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .ai-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.9rem;
+      border-radius: var(--radius-full);
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .ai-status-pill.ready {
+      background: var(--primary-light);
+      color: var(--primary-hover);
+      border: 1px solid #a7f3d0;
+    }
+
+    .ai-status-pill.unconfigured {
+      background: #fef3c7;
+      color: #b45309;
+      border: 1px solid #fde68a;
+    }
+
+    .dropzone-container {
+      padding: 2.5rem 2rem;
+      text-align: center;
+    }
+
+    .dropzone-box {
+      border: 2px dashed #cbd5e1;
+      border-radius: var(--radius-lg);
+      padding: 3.5rem 2rem;
+      background: #f8fafc;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .dropzone-box:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .preview-container {
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .preview-media-box {
+      max-width: 480px;
+      width: 100%;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+      border: 2px solid var(--border-color);
+      background: #000;
+      position: relative;
+    }
+
+    .preview-image {
+      width: 100%;
+      height: 320px;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Result Card */
+    .result-card {
+      background: white;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-xl);
+      overflow: hidden;
+      margin-top: 1.5rem;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-header {
+      padding: 2rem;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .result-section-box {
+      background: var(--bg-card-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      border: 1px solid var(--border-color);
+    }
+
+    .safety-alert-box {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: var(--radius-lg);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      color: #991b1b;
+    }
+
+    /* Dashboard & History */
+    .dashboard-view, .history-view, .edu-layout {
+      max-width: 1100px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .stat-metric-card {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .dashboard-two-col {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 2rem;
+    }
+
+    @media (max-width: 900px) {
+      .dashboard-two-col { grid-template-columns: 1fr; }
+    }
+
+    .dashboard-panel, .history-card, .edu-card {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-xl);
+      padding: 1.75rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .daily-tip-card {
+      background: linear-gradient(135deg, #065f46, #047857);
+      color: white;
+      border-radius: var(--radius-xl);
+      padding: 1.75rem;
+      box-shadow: var(--shadow-md);
+      margin-bottom: 2rem;
+      display: flex;
+      gap: 1.25rem;
+    }
+
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .history-table th {
+      background: #f8fafc;
+      text-align: left;
+      padding: 0.85rem 1.25rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .history-table td {
+      padding: 1.1rem 1.25rem;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 0.9rem;
+    }
+
+    /* Tabs */
+    .edu-tabs {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      padding-bottom: 1rem;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .edu-tab-btn {
+      padding: 0.65rem 1.25rem;
+      border-radius: var(--radius-full);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: white;
+      border: 1px solid var(--border-color);
+      white-space: nowrap;
+      transition: var(--transition);
+    }
+
+    .edu-tab-btn.active {
+      background: var(--primary-hover);
+      color: white;
+      border-color: var(--primary-hover);
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .modal-window {
+      background: white;
+      border-radius: var(--radius-xl);
+      max-width: 560px;
+      width: 100%;
+      box-shadow: var(--shadow-xl);
+      overflow: hidden;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid var(--border-color);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .footer {
+      background: white;
+      border-top: 1px solid var(--border-color);
+      padding: 3rem 1.5rem 2rem;
+      color: var(--text-muted);
+      margin-top: 3rem;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="nav-container">
+        <button class="brand-logo" onclick="switchPage('home')">
+          <div class="brand-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+          </div>
+          <div class="brand-title">
+            <span id="navBrand">Smart Waste AI</span>
+            <span class="tagline-small" id="navTagline">Scan It. Sort It. Save the Planet.</span>
+          </div>
+        </button>
+
+        <ul class="nav-links">
+          <li><button class="nav-item active" id="navHome" onclick="switchPage('home')">Home</button></li>
+          <li><button class="nav-item" id="navScan" onclick="switchPage('scan')">AI Scanner</button></li>
+          <li><button class="nav-item" id="navDashboard" onclick="switchPage('dashboard')">Dashboard</button></li>
+          <li><button class="nav-item" id="navEducation" onclick="switchPage('education')">Learn</button></li>
+          <li><button class="nav-item" id="navHistory" onclick="switchPage('history')">History</button></li>
+        </ul>
+
+        <div class="nav-actions">
+          <button class="lang-btn" onclick="openModelSettings()" title="AI Model Settings">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span>AI</span>
+          </button>
+          <button class="lang-btn" onclick="toggleLanguage()">
+            <span id="langDisplay">తెలుగు</span>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Views Container -->
+    <main class="main-content">
+      <!-- 1. HOME VIEW -->
+      <div id="view-home">
+        <section class="hero">
+          <div class="hero-container">
+            <div class="hero-badge">
+              <span class="pulse-dot"></span>
+              <span id="heroBadge">AI-Powered Environmental Action</span>
+            </div>
+            <h1 class="hero-title" id="heroTitle">Smart Segregation for a Cleaner Tomorrow</h1>
+            <p class="hero-subtitle" id="heroSubtitle">Harness client-side Artificial Intelligence to identify any waste item instantly. Get verified segregation advice, local recycling guides, and protect sanitation workers.</p>
+            <div class="hero-actions">
+              <button class="btn-primary" onclick="switchPage('scan')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/></svg>
+                <span id="btnStartScanning">Scan Waste Now</span>
+              </button>
+              <button class="btn-secondary" onclick="switchPage('education')">
+                <span id="btnLearnMore">Explore Guide</span>
+              </button>
+              <button class="btn-secondary" onclick="openManualSelector()">
+                <span id="btnManualSelect">Manual Category Selection</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- How It Works -->
+        <section class="section" style="background: white;">
+          <div class="section-container">
+            <div class="section-header">
+              <h2 class="section-title" id="howItWorksTitle">How Smart Waste AI Works</h2>
+              <p class="section-subtitle" id="howItWorksSubtitle">Three simple steps to transition from confusion to eco-friendly disposal.</p>
+            </div>
+            <div class="steps-grid">
+              <div class="step-card">
+                <div class="step-icon-wrap">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                </div>
+                <h3 id="step1Title">1. Capture or Upload</h3>
+                <p id="step1Desc">Take a picture of any discarded item using your phone camera or upload an image file from your device.</p>
+              </div>
+              <div class="step-card">
+                <div class="step-icon-wrap" style="background: #f0fdfa; color: var(--secondary);">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>
+                </div>
+                <h3 id="step2Title">2. Real-Time AI Analysis</h3>
+                <p id="step2Desc">Our in-browser machine learning model inspects texture, shape, and material to classify the waste item with confidence scoring.</p>
+              </div>
+              <div class="step-card">
+                <div class="step-icon-wrap" style="background: #ecfdf5; color: var(--primary);">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 19H4.815a1.83 1.83 0 0 1-1.57-.881 1.785 1.785 0 0 1-.004-1.784L7.196 9.5"/><path d="M11 19h8.2a1.8 1.8 0 0 0 1.5-2.7l-4.1-7.2"/><path d="M11 19l-4-7h8l-4 7z"/></svg>
+                </div>
+                <h3 id="step3Title">3. Sort & Save the Planet</h3>
+                <p id="step3Desc">Receive actionable segregation rules, safety instructions for hazardous materials, and environmental impact insights.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Categories -->
+        <section class="section">
+          <div class="section-container">
+            <div class="section-header">
+              <h2 class="section-title" id="categoriesTitle">Waste Streams We Classify</h2>
+              <p class="section-subtitle" id="categoriesSubtitle">Understanding municipal waste segregation streams is essential for circular recycling.</p>
+            </div>
+            <div class="category-grid" id="homeCategoriesList"></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- 2. SCANNER VIEW -->
+      <div id="view-scan" class="hidden">
+        <div class="scanner-view">
+          <div class="scanner-card">
+            <div class="scanner-header">
+              <div>
+                <h2 id="scannerTitle">AI Waste Image Scanner</h2>
+                <p id="scannerSubtitle" style="font-size: 0.9rem; color: var(--text-muted);">Upload a photo or capture an image. Processed 100% in your browser.</p>
+              </div>
+              <button class="ai-status-pill ready" id="aiStatusPill" onclick="openModelSettings()">
+                <span id="aiStatusText">AI Model Active (TensorFlow.js)</span>
+              </button>
+            </div>
+
+            <!-- Upload Area -->
+            <div id="scannerUploadState" class="dropzone-container">
+              <div class="dropzone-box" onclick="document.getElementById('fileInput').click()">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <div class="dropzone-text">
+                  <h3 id="uploadPrompt">Drag & drop your waste image here, or browse</h3>
+                  <p id="uploadFormats">Supports JPG, PNG, WEBP up to 10MB</p>
+                </div>
+                <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
+              </div>
+
+              <div class="hero-actions" style="margin-top: 1.5rem;">
+                <button class="btn-primary" onclick="openCameraModal()">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                  <span id="btnCaptureCamera">Use Camera</span>
+                </button>
+                <button class="btn-secondary" onclick="document.getElementById('fileInput').click()">
+                  <span id="btnUploadFile">Browse Image</span>
+                </button>
+                <button class="btn-secondary" onclick="openManualSelector()">
+                  <span id="btnManualSelect2">Manual Category Selection</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Image Preview Area -->
+            <div id="scannerPreviewState" class="preview-container hidden">
+              <div class="preview-media-box">
+                <img id="previewImage" class="preview-image" alt="Waste preview">
+              </div>
+
+              <div id="analyzingSpinner" class="hidden" style="margin: 1.5rem 0; text-align: center;">
+                <div class="spinner" style="margin: 0 auto 0.75rem;"></div>
+                <p style="font-weight: 700; color: var(--primary-hover);" id="analyzingText">Analyzing item with Machine Learning...</p>
+              </div>
+
+              <div class="hero-actions" id="previewActions" style="margin-top: 1.5rem;">
+                <button class="btn-primary" onclick="runAiClassification()">
+                  <span id="btnAnalyze">Classify With AI</span>
+                </button>
+                <button class="btn-secondary" onclick="resetScanner()">
+                  <span id="btnChangeImage">Change Image</span>
+                </button>
+                <button class="btn-secondary" onclick="openManualSelector()">
+                  <span id="btnOpenDemoMode">Manual Selection</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Result Card Area -->
+            <div id="scannerResultArea" class="hidden" style="padding: 0 1.5rem 1.5rem;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. DASHBOARD VIEW -->
+      <div id="view-dashboard" class="hidden">
+        <div class="dashboard-view">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <h1 id="dashboardTitle" style="font-size: 2.2rem; font-weight: 800;">User Impact Dashboard</h1>
+              <p id="dashboardSubtitle" style="color: var(--text-muted);">Monitor your waste segregation habits and track genuine local scan activity.</p>
+            </div>
+            <button class="btn-primary" onclick="switchPage('scan')">
+              <span id="newScanCTA">Start New Scan</span>
+            </button>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-metric-card">
+              <div class="stat-icon" style="background: #ecfdf5; color: #10b981; font-weight: 800; font-size: 1.5rem;">#</div>
+              <div class="stat-data">
+                <div class="stat-number" id="dashTotalScans">0</div>
+                <div class="stat-title" id="statTotalScans">Total Scans</div>
+              </div>
+            </div>
+            <div class="stat-metric-card">
+              <div class="stat-icon" style="background: #eff6ff; color: #3b82f6; font-weight: 800; font-size: 1.5rem;">★</div>
+              <div class="stat-data">
+                <div class="stat-number" id="dashTopCat" style="font-size: 1.25rem;">—</div>
+                <div class="stat-title" id="statTopCategory">Frequent Stream</div>
+              </div>
+            </div>
+            <div class="stat-metric-card">
+              <div class="stat-icon" style="background: #fef3c7; color: #d97706; font-weight: 800; font-size: 1.5rem;">◷</div>
+              <div class="stat-data">
+                <div class="stat-number" id="dashLastScan" style="font-size: 1.1rem;">—</div>
+                <div class="stat-title" id="statLastActive">Last Scanned</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="daily-tip-card">
+            <div>
+              <h4 id="dailyTipTitle">Today's Eco-Action Tip</h4>
+              <p id="dailyTipContent">Rinsing food tins and plastic bottles before tossing prevents bad odor, pests, and material contamination at recycling hubs.</p>
+            </div>
+          </div>
+
+          <div class="dashboard-two-col">
+            <div class="dashboard-panel">
+              <h3 id="breakdownTitle" style="margin-bottom: 1.5rem; font-weight: 800;">Waste Streams Categorized</h3>
+              <div id="dashboardCategoryProgress"></div>
+            </div>
+            <div class="dashboard-panel">
+              <h3 id="recentActivityTitle" style="margin-bottom: 1.5rem; font-weight: 800;">Recent Scan Log</h3>
+              <div id="dashboardRecentList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. EDUCATION VIEW -->
+      <div id="view-education" class="hidden">
+        <div class="edu-layout">
+          <div style="text-align: center; margin-bottom: 2rem;">
+            <h1 id="eduTitle" style="font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem;">Waste Segregation & Circular Living Guide</h1>
+            <p id="eduSubtitle" style="color: var(--text-muted);">Master the art of resource conservation, hazardous waste safety, and source segregation.</p>
+          </div>
+          <div class="edu-tabs" id="eduTabsList"></div>
+          <div class="edu-card" id="eduContentCard"></div>
+        </div>
+      </div>
+
+      <!-- 5. HISTORY VIEW -->
+      <div id="view-history" class="hidden">
+        <div class="history-view">
+          <div class="history-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <h1 id="historyTitle" style="font-size: 1.6rem; font-weight: 800;">Scan History</h1>
+                <p id="historySubtitle" style="color: var(--text-muted); font-size: 0.9rem;">Stored privately in browser LocalStorage.</p>
+              </div>
+              <button class="btn-secondary" style="color: var(--danger); border-color: #fecaca; background: #fee2e2;" onclick="clearAllHistory()">
+                <span id="btnClearHistory">Clear Entire History</span>
+              </button>
+            </div>
+            <div style="overflow-x: auto;">
+              <table class="history-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th id="thTimestamp">Date & Time</th>
+                    <th id="thCategory">Category</th>
+                    <th id="thBin">Designated Bin</th>
+                    <th id="thConfidence">Confidence</th>
+                    <th style="text-align: right;" id="thAction">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="historyTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="section-container" style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2rem;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 800; font-size: 1.2rem; color: var(--text-main); margin-bottom: 0.5rem;">
+            <span>🌱 Smart Waste AI</span>
+          </div>
+          <p id="footerDesc" style="max-width: 440px; font-size: 0.9rem;">Open-source college hackathon project engineered to democratize waste segregation through accessible on-device Artificial Intelligence.</p>
+        </div>
+        <div>
+          <h4 style="font-weight: 700; margin-bottom: 0.5rem;" id="footerBuiltFor">College Hackathon Edition</h4>
+          <p style="font-size: 0.85rem;">Built with React, Vite & TensorFlow.js MobileNet.</p>
+          <p style="font-size: 0.85rem; color: var(--primary-hover); margin-top: 0.5rem;" id="footerPrivacyNote">100% In-Browser Privacy Protected.</p>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- MODALS -->
+  <!-- 1. Manual Category Selector -->
+  <div id="manualCategoryModal" class="modal-backdrop hidden">
+    <div class="modal-window">
+      <div style="padding: 1.25rem 1.75rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <h3 id="modalSelectTitle" style="font-weight: 800;">Select Waste Category</h3>
+        <button onclick="closeManualSelector()" style="font-size: 1.2rem; font-weight: 700;">✕</button>
+      </div>
+      <div style="padding: 1.5rem; overflow-y: auto;" id="manualCategoriesList"></div>
+    </div>
+  </div>
+
+  <!-- 2. AI Model Settings Modal -->
+  <div id="modelSettingsModal" class="modal-backdrop hidden">
+    <div class="modal-window">
+      <div style="padding: 1.25rem 1.75rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <h3 id="modelSettingsTitle" style="font-weight: 800;">AI Model Configuration</h3>
+        <button onclick="closeModelSettings()" style="font-size: 1.2rem; font-weight: 700;">✕</button>
+      </div>
+      <div style="padding: 1.5rem;">
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.25rem;" id="modelSettingsDesc">
+          Smart Waste AI runs in-browser neural networks. Powered by TensorFlow.js & MobileNet image classification.
+        </p>
+        <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+          <label style="display: flex; align-items: center; justify-content: space-between; font-weight: 700; cursor: pointer;">
+            <span>Enable In-Browser AI Engine</span>
+            <input type="checkbox" id="aiEnabledCheckbox" checked style="width: 20px; height: 20px; accent-color: var(--primary);">
+          </label>
+        </div>
+        <div style="padding: 0.85rem; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; font-size: 0.85rem; color: #065f46;">
+          <strong>Honesty Guarantee:</strong> We never generate fake confidence percentages or mock AI predictions. If the model is disabled, manual category mode is always available.
+        </div>
+      </div>
+      <div style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button class="btn-primary" onclick="closeModelSettings()">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Camera Modal -->
+  <div id="cameraModal" class="modal-backdrop hidden">
+    <div class="modal-window">
+      <div style="padding: 1.25rem 1.75rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <h3 id="cameraModalTitle" style="font-weight: 800;">Live Device Camera</h3>
+        <button onclick="closeCameraModal()" style="font-size: 1.2rem; font-weight: 700;">✕</button>
+      </div>
+      <div style="padding: 1rem; display: flex; flex-direction: column; align-items: center;">
+        <video id="cameraVideo" playsinline autoplay muted style="width: 100%; border-radius: 12px; background: #000; aspect-ratio: 4/3; object-fit: cover;"></video>
+      </div>
+      <div style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between;">
+        <button class="btn-secondary" onclick="closeCameraModal()">Cancel</button>
+        <button class="btn-primary" onclick="captureCameraPhoto()">Snap Photo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION CORE SCRIPT -->
+  <script>
+    // ==========================================
+    // DATASETS & TRANSLATIONS
+    // ==========================================
+    let currentLang = localStorage.getItem('smartwaste_language') || 'en';
+    let scanHistory = JSON.parse(localStorage.getItem('smartwaste_history') || '[]');
+    let aiModel = null;
+    let cameraStream = null;
+
+    const WASTE_CATEGORIES = [
+      {
+        id: "plastic",
+        binColor: "#2563eb",
+        binNameEn: "Blue Bin (Dry Recyclables)",
+        binNameTe: "నీలి రంగు డస్ట్‌బిన్ (పొడి రీసైక్లింగ్)",
+        titleEn: "Plastic Waste",
+        titleTe: "ప్లాస్టిక్ వ్యర్థాలు",
+        taglineEn: "Bottles, containers, clean packaging",
+        taglineTe: "సీసాలు, డబ్బాలు, ప్లాస్టిక్ వస్తువులు",
+        disposalEn: "Rinse cleanly, dry thoroughly, and crush to save bin space.",
+        disposalTe: "నీటితో కడిగి ఆరబెట్టి, స్థలాన్ని ఆదా చేయడానికి సీసాలను నొక్కండి.",
+        recyclingEn: "Widely recycled (#1 PET, #2 HDPE). Avoid black plastics or unlabelled thin multi-layer pouches.",
+        recyclingTe: "కోడ్ #1, #2 ప్లాస్టిక్‌లు సులభంగా రీసైకిల్ అవుతాయి.",
+        safetyEn: "Never burn plastic waste; combustion releases toxic dioxins. Isolate chemical jugs.",
+        safetyTe: "ప్లాస్టిక్‌ను ఎప్పుడూ కాల్చవద్దు, ఇది విషపూరిత వాయువులను విడుదల చేస్తుంది.",
+        benefitEn: "Recycling 1 ton of plastic preserves over 5,700 kWh of electric energy."
+      },
+      {
+        id: "paper",
+        binColor: "#3b82f6",
+        binNameEn: "Blue Bin (Dry Waste)",
+        binNameTe: "నీలి రంగు డస్ట్‌బిన్ (పొడి చెత్త)",
+        titleEn: "Paper & Cardboard",
+        titleTe: "కాగితం & అట్టపెట్టెలు",
+        taglineEn: "Newspapers, cardboard cartons, clean paper",
+        taglineTe: "వార్తాపత్రికలు, కార్డుబోర్డు డబ్బాలు, పుస్తకాలు",
+        disposalEn: "Flatten boxes. Keep completely clean and dry.",
+        disposalTe: "అట్టపెట్టెలను చదును చేయండి. కాగితాన్ని పొడిగా ఉంచండి.",
+        recyclingEn: "High recycling value. Greasy pizza boxes or wet paper cannot be recycled.",
+        recyclingTe: "శుభ్రమైన కాగితాన్ని 5 నుండి 7 సార్లు రీసైకిల్ చేయవచ్చు. నూనె అంటిన బాక్సులను వేయకండి.",
+        safetyEn: "Keep wet paper out to avoid contaminating the dry recycling bin.",
+        safetyTe: "తడిసిన కాగితాన్ని పొడి చెత్తతో కలపకండి.",
+        benefitEn: "Recycling 1 metric ton of paper saves 17 mature trees and 26,000 liters of water."
+      },
+      {
+        id: "metal",
+        binColor: "#0284c7",
+        binNameEn: "Blue Bin (Metal & Cans)",
+        binNameTe: "నీలి రంగు బిన్ (లోహం & క్యాన్లు)",
+        titleEn: "Metal & Cans",
+        titleTe: "లోహం & క్యాన్లు",
+        taglineEn: "Beverage cans, tin food cans, foil",
+        taglineTe: "కూల్ డ్రింక్ డబ్బాలు, టిన్ క్యాన్లు, లోహ వస్తువులు",
+        disposalEn: "Rinse food residues cleanly. Crimp sharp edges inside.",
+        disposalTe: "మిగిలిన ఆహారాన్ని కడగండి. పదునైన అంచులను లోపలికి మడవండి.",
+        recyclingEn: "Aluminum and steel are 100% infinitely recyclable without degrading.",
+        recyclingTe: "లోహాలను నాణ్యత తగ్గకుండా ఎన్నిసార్లయినా రీసైకిల్ చేయవచ్చు.",
+        safetyEn: "Wrap razor-sharp metal sheet edges securely in cardboard to safeguard collectors.",
+        safetyTe: "పదునైన లోహపు రేకులను కార్డ్ బోర్డులో చుట్టి పారవేయండి.",
+        benefitEn: "Recycling aluminum consumes 95% less energy than mining bauxite ore."
+      },
+      {
+        id: "glass",
+        binColor: "#0891b2",
+        binNameEn: "Blue Bin / Glass Caddy",
+        binNameTe: "నీలి రంగు బిన్ (గాజు)",
+        titleEn: "Glass Bottles & Jars",
+        titleTe: "గాజు సీసాలు & జాడీలు",
+        taglineEn: "Clean beverage bottles, condiment jars",
+        taglineTe: "గాజు కూల్ డ్రింక్ సీసాలు, జాడీలు",
+        disposalEn: "Rinse cleanly and air dry. Remove metal caps.",
+        disposalTe: "సీసాలను కడిగి ఆరబెట్టండి. మూతలను వేరు చేయండి.",
+        recyclingEn: "Bottles and jars are 100% recyclable. Never mix window panes or mirrors.",
+        recyclingTe: "గాజు సీసాలు 100% రీసైకిల్ అవుతాయి.",
+        safetyEn: "CRITICAL: If broken, wrap shards tightly in thick newspaper and label 'BROKEN GLASS'.",
+        safetyTe: "హెచ్చరిక: గాజు పగిలితే వార్తాపత్రికలో గట్టిగా చుట్టి 'పగిలిన గాజు' అని రాయండి.",
+        benefitEn: "Lowers furnace operating temperatures and preserves natural silica sands."
+      },
+      {
+        id: "organic",
+        binColor: "#16a34a",
+        binNameEn: "Green Bin (Wet / Biodegradable)",
+        binNameTe: "ఆకుపచ్చ డస్ట్‌బిన్ (తడి / సేంద్రీయ చెత్త)",
+        titleEn: "Organic & Food Waste",
+        titleTe: "సేంద్రీయ & ఆహార వ్యర్థాలు (తడి చెత్త)",
+        taglineEn: "Fruit peels, leftovers, coffee grounds",
+        taglineTe: "కూరగాయలు, పండ్ల తొక్కలు, మిగిలిన ఆహారం",
+        disposalEn: "Collect in an unlined bucket or newspaper. NEVER throw inside plastic bags.",
+        disposalTe: "ప్లాస్టిక్ కవర్లలో కట్టి పారవేయవద్దు. ఆకుపచ్చ డస్ట్‌బిన్‌లో వేయండి.",
+        recyclingEn: "Ideal for home composting and community biogas digesters.",
+        recyclingTe: "ఇంటి వద్ద ఎరువుగా మార్చడానికి ఇది అత్యంత అనుకూలం.",
+        safetyEn: "Do not add synthetic tea bags, pet droppings, or treated timber to compost.",
+        safetyTe: "ప్లాస్టిక్ వ్యర్థాలను లేదా పెంపుడు జంతువుల మలాన్ని ఇందులో వేయకండి.",
+        benefitEn: "Diverts methane-producing organic mass away from municipal landfills."
+      },
+      {
+        id: "ewaste",
+        binColor: "#dc2626",
+        binNameEn: "E-Waste Kiosk / Red Bin",
+        binNameTe: "ఈ-వేస్ట్ కేంద్రం / ఎరుపు రంగు బిన్",
+        titleEn: "Electronic Waste (E-Waste)",
+        titleTe: "ఎలక్ట్రానిక్ వ్యర్థాలు (ఈ-వేస్ట్)",
+        taglineEn: "Cables, chargers, electronics, batteries",
+        taglineTe: "కేబుల్స్, ఛార్జర్లు, పాత ఫోన్లు, బ్యాటరీలు",
+        disposalEn: "Deliver to certified municipal collection points. NEVER mix with wet or dry waste.",
+        disposalTe: "సాధారణ చెత్తతో కలపకండి. అధీకృత ఈ-వేస్ట్ సేకరణ కేంద్రానికి ఇవ్వండి.",
+        recyclingEn: "Certified recyclers recover precious gold, silver, and copper safely.",
+        recyclingTe: "రీసైక్లర్లు బంగారం, వెండి, రాగి వంటి విలువైన లోహాలను వెలికితీస్తారు.",
+        safetyEn: "HIGH HAZARD: Tape lithium battery terminals with electrical tape to prevent explosions.",
+        safetyTe: "తీవ్రమైన హెచ్చరిక: లిథియం బ్యాటరీ చివరలను ఇన్సులేషన్ టేపుతో కప్పి ఉంచండి.",
+        benefitEn: "Prevents toxic lead and cadmium from poisoning local groundwater aquifers."
+      },
+      {
+        id: "general",
+        binColor: "#475569",
+        binNameEn: "Black / Grey Bin (Non-Recyclable)",
+        binNameTe: "నలుపు / బూడిద రంగు బిన్ (పునర్వినియోగం కాని చెత్త)",
+        titleEn: "General / Mixed Waste",
+        titleTe: "సాధారణ / మిశ్రమ చెత్త",
+        taglineEn: "Sanitary products, multilayer chip packets, ceramics",
+        taglineTe: "శానిటరీ ప్యాడ్లు, చిప్స్ ప్యాకెట్లు, వాడిన టిష్యూలు",
+        disposalEn: "Wrap sanitary items cleanly in paper with a red cross (X) mark.",
+        disposalTe: "శానిటరీ వ్యర్థాలను కాగితంలో చుట్టి ఎరుపు రంగు గుర్తుతో వేయండి.",
+        recyclingEn: "Non-recyclable residual waste. Directed to sanitary landfills or waste-to-energy.",
+        recyclingTe: "సాధారణంగా రీసైకిల్ చేయడం సాధ్యం కాదు.",
+        safetyEn: "Keep sanitary waste marked. Never burn open rubbish.",
+        safetyTe: "దీనిని ఎప్పుడూ తగులబెట్టవద్దు.",
+        benefitEn: "Segregating residual waste preserves the purity of dry and organic bins."
+      }
+    ];
+
+    const EDU_TOPICS = [
+      {
+        id: "why",
+        titleEn: "Why Segregate Waste?",
+        titleTe: "చెత్తను వేరు చేయడం ఎందుకు ముఖ్యం?",
+        contentEn: "Mixing wet food with plastics and glass ruins recyclable materials and forms poisonous black leachate that seeps into drinking water. Segregation at the source diverts up to 80% of waste from landfills.",
+        contentTe: "తడి మరియు పొడి చెత్తను కలపడం వల్ల రీసైక్లింగ్ చేయలేము. అలాగే భూగర్భ జలాలు విషపూరితమవుతాయి. ఇంట్లోనే వేరు చేయడం ద్వారా 80% చెత్తను తగ్గించవచ్చు."
+      },
+      {
+        id: "3r",
+        titleEn: "The 3 R's: Reduce, Reuse, Recycle",
+        titleTe: "3 R సూత్రాలు: తగ్గించు, తిరిగి వాడు, రీసైకిల్ చేయి",
+        contentEn: "1. REDUCE: Avoid disposable items. 2. REUSE: Repurpose glass jars, clean cloth bags, and boxes. 3. RECYCLE: Cleanly sort paper, plastic, and metals.",
+        contentTe: "1. తగ్గించడం: ప్లాస్టిక్ వాడకాన్ని తగ్గించండి. 2. తిరిగి వాడటం: గాజు సీసాలు, సంచులను తిరిగి వాడండి. 3. రీసైక్లింగ్: కాగితం, లోహాలను రీసైకిల్ చేయండి."
+      },
+      {
+        id: "wetdry",
+        titleEn: "Wet vs Dry Waste Rules",
+        titleTe: "తడి vs పొడి చెత్త నియమాలు",
+        contentEn: "GREEN BIN = Kitchen organic scraps, peels, cooked food. BLUE BIN = Dry paper, cardboard, plastic bottles, clean cans. RED BIN = Broken glass, batteries, hazardous chemicals.",
+        contentTe: "ఆకుపచ్చ బిన్ = వంటగది తడి చెత్త, కూరగాయల తొక్కలు. నీలి బిన్ = పొడి కాగితం, ప్లాస్టిక్, లోహం. ఎరుపు బిన్ = ప్రమాదకర వ్యర్థాలు, పగిలిన గాజు, బ్యాటరీలు."
+      },
+      {
+        id: "safety",
+        titleEn: "Sanitation Worker Safety",
+        titleTe: "పారిశుధ్య కార్మికుల భద్రత",
+        contentEn: "Always wrap broken glass and blades in thick newspaper. Tape lithium battery terminals. This protects sanitation workers from severe cuts, infections, and explosions.",
+        contentTe: "పగిలిన గాజు మరియు బ్లేడ్లను వార్తాపత్రికలో చుట్టండి. బ్యాటరీలకు టేప్ వేయండి. ఇది పారిశుధ్య కార్మికులను గాయాల నుండి రక్షిస్తుంది."
+      }
+    ];
+
+    // ==========================================
+    // INITIALIZATION & AI MODEL SETUP
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', async () => {
+      renderCategoriesHome();
+      renderEducation();
+      renderDashboard();
+      updateLanguageUI();
+
+      // Initialize TensorFlow.js MobileNet
+      try {
+        if (typeof mobilenet !== 'undefined') {
+          aiModel = await mobilenet.load({ version: 2, alpha: 1.0 });
+          document.getElementById('aiStatusText').textContent = currentLang === 'te' ? "AI మోడల్ సిద్ధంగా ఉంది (TensorFlow.js)" : "AI Model Active (TensorFlow.js)";
+        } else {
+          document.getElementById('aiStatusPill').className = "ai-status-pill unconfigured";
+          document.getElementById('aiStatusText').textContent = "AI Offline - Manual Mode Available";
+        }
+      } catch (err) {
+        console.warn("MobileNet load error:", err);
+        document.getElementById('aiStatusPill').className = "ai-status-pill unconfigured";
+        document.getElementById('aiStatusText').textContent = "AI Offline - Manual Mode Available";
+      }
+    });
+
+    // ==========================================
+    // NAVIGATION
+    // ==========================================
+    function switchPage(pageId) {
+      ['home', 'scan', 'dashboard', 'education', 'history'].forEach(id => {
+        document.getElementById(`view-${id}`).classList.add('hidden');
+        const navEl = document.getElementById(`nav${id.charAt(0).toUpperCase() + id.slice(1)}`);
+        if (navEl) navEl.classList.remove('active');
+      });
+
+      document.getElementById(`view-${pageId}`).classList.remove('hidden');
+      const activeNav = document.getElementById(`nav${pageId.charAt(0).toUpperCase() + pageId.slice(1)}`);
+      if (activeNav) activeNav.classList.add('active');
+
+      if (pageId === 'dashboard') renderDashboard();
+      if (pageId === 'history') renderHistory();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ==========================================
+    // LANGUAGE SWITCHING (ENGLISH / TELUGU)
+    // ==========================================
+    function toggleLanguage() {
+      currentLang = currentLang === 'en' ? 'te' : 'en';
+      localStorage.setItem('smartwaste_language', currentLang);
+      document.getElementById('langDisplay').textContent = currentLang === 'en' ? 'తెలుగు' : 'English';
+      updateLanguageUI();
+      renderCategoriesHome();
+      renderEducation();
+      renderDashboard();
+    }
+
+    function updateLanguageUI() {
+      const isTe = currentLang === 'te';
+      document.getElementById('navTagline').textContent = isTe ? "స్కాన్ చేయండి. వేరు చేయండి. భూమిని కాపాడండి." : "Scan It. Sort It. Save the Planet.";
+      document.getElementById('navHome').textContent = isTe ? "హోమ్" : "Home";
+      document.getElementById('navScan').textContent = isTe ? "AI స్కానర్" : "AI Scanner";
+      document.getElementById('navDashboard').textContent = isTe ? "డాష్‌బోర్డ్" : "Dashboard";
+      document.getElementById('navEducation').textContent = isTe ? "నేర్చుకోండి" : "Learn";
+      document.getElementById('navHistory').textContent = isTe ? "చరిత్ర" : "History";
+
+      document.getElementById('heroBadge').textContent = isTe ? "పర్యావరణ పరిరక్షణ కోసం AI సాంకేతికత" : "AI-Powered Environmental Action";
+      document.getElementById('heroTitle').textContent = isTe ? "పరిశుభ్రమైన భవిష్యత్తు కోసం వ్యర్థాల వర్గీకరణ" : "Smart Segregation for a Cleaner Tomorrow";
+      document.getElementById('heroSubtitle').textContent = isTe ? "వ్యర్థ పదార్థాలను క్షణాల్లో గుర్తించడానికి బ్రౌజర్ ఆధారిత ఆర్టిఫిషియల్ ఇంటెలిజెన్స్ ఉపయోగించండి. సరైన రీసైక్లింగ్ సలహాలు పొందండి." : "Harness client-side Artificial Intelligence to identify any waste item instantly. Get verified segregation advice, local recycling guides, and protect sanitation workers.";
+      document.getElementById('btnStartScanning').textContent = isTe ? "ఇప్పుడే స్కాన్ చేయండి" : "Scan Waste Now";
+      document.getElementById('btnLearnMore').textContent = isTe ? "మార్గదర్శిని చదవండి" : "Explore Guide";
+      document.getElementById('btnManualSelect').textContent = isTe ? "మాన్యువల్ వర్గం ఎంపిక" : "Manual Category Selection";
+
+      document.getElementById('scannerTitle').textContent = isTe ? "AI వేస్ట్ ఇమేజ్ స్కానర్" : "AI Waste Image Scanner";
+      document.getElementById('uploadPrompt').textContent = isTe ? "మీ చెత్త చిత్రాన్ని ఇక్కడ లాగండి లేదా బ్రౌజ్ చేయండి" : "Drag & drop your waste image here, or browse";
+      document.getElementById('btnCaptureCamera').textContent = isTe ? "కెమెరా ఉపయోగించండి" : "Use Camera";
+      document.getElementById('btnUploadFile').textContent = isTe ? "చిత్రాన్ని ఎంచుకోండి" : "Browse Image";
+      document.getElementById('btnManualSelect2').textContent = isTe ? "మాన్యువల్ వర్గీకరణ" : "Manual Category Selection";
+      document.getElementById('btnAnalyze').textContent = isTe ? "AI తో విశ్లేషించండి" : "Classify With AI";
+      document.getElementById('btnChangeImage').textContent = isTe ? "చిత్రాన్ని మార్చండి" : "Change Image";
+      document.getElementById('btnOpenDemoMode').textContent = isTe ? "మాన్యువల్ ఎంపిక" : "Manual Selection";
+    }
+
+    // ==========================================
+    // RENDER HOME CATEGORIES & EDUCATION
+    // ==========================================
+    function renderCategoriesHome() {
+      const container = document.getElementById('homeCategoriesList');
+      if (!container) return;
+      const isTe = currentLang === 'te';
+
+      container.innerHTML = WASTE_CATEGORIES.map(cat => `
+        <div class="cat-card">
+          <div>
+            <div class="cat-badge" style="background: ${cat.binColor}15; color: ${cat.binColor}; border: 1px solid ${cat.binColor}30;">
+              ${isTe ? cat.binNameTe : cat.binNameEn}
+            </div>
+            <h4 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.35rem;">${isTe ? cat.titleTe : cat.titleEn}</h4>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">${isTe ? cat.taglineTe : cat.taglineEn}</p>
+          </div>
+          <button onclick="displayResult('${cat.id}', 0, true); switchPage('scan');" style="margin-top: 1rem; color: var(--primary-hover); font-weight: 700; font-size: 0.85rem; text-align: left;">
+            ${isTe ? 'సిఫార్సులు చూడండి →' : 'View Guidelines →'}
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function renderEducation() {
+      const tabs = document.getElementById('eduTabsList');
+      const content = document.getElementById('eduContentCard');
+      const isTe = currentLang === 'te';
+
+      tabs.innerHTML = EDU_TOPICS.map((topic, i) => `
+        <button class="edu-tab-btn ${i === 0 ? 'active' : ''}" onclick="selectEduTopic('${topic.id}', this)">
+          ${isTe ? topic.titleTe : topic.titleEn}
+        </button>
+      `).join('');
+
+      showEduTopic(EDU_TOPICS[0]);
+    }
+
+    function selectEduTopic(id, btn) {
+      document.querySelectorAll('.edu-tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const topic = EDU_TOPICS.find(t => t.id === id);
+      showEduTopic(topic);
+    }
+
+    function showEduTopic(topic) {
+      const isTe = currentLang === 'te';
+      document.getElementById('eduContentCard').innerHTML = `
+        <h2 style="font-size: 1.6rem; font-weight: 800; margin-bottom: 0.75rem;">${isTe ? topic.titleTe : topic.titleEn}</h2>
+        <p style="font-size: 1.05rem; line-height: 1.7; color: var(--text-muted);">${isTe ? topic.contentTe : topic.contentEn}</p>
+      `;
+    }
+
+    // ==========================================
+    // SCANNER & AI CLASSIFICATION
+    // ==========================================
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        document.getElementById('previewImage').src = e.target.result;
+        document.getElementById('scannerUploadState').classList.add('hidden');
+        document.getElementById('scannerPreviewState').classList.remove('hidden');
+        document.getElementById('scannerResultArea').classList.add('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function resetScanner() {
+      document.getElementById('scannerUploadState').classList.remove('hidden');
+      document.getElementById('scannerPreviewState').classList.add('hidden');
+      document.getElementById('scannerResultArea').classList.add('hidden');
+      document.getElementById('fileInput').value = '';
+    }
+
+    async function runAiClassification() {
+      const img = document.getElementById('previewImage');
+      const isAiEnabled = document.getElementById('aiEnabledCheckbox').checked;
+
+      if (!isAiEnabled || !aiModel) {
+        alert("AI Model is disabled or offline. Opening manual selector demo mode.");
+        openManualSelector();
+        return;
+      }
+
+      document.getElementById('analyzingSpinner').classList.remove('hidden');
+      document.getElementById('previewActions').classList.add('hidden');
+
+      try {
+        const predictions = await aiModel.classify(img, 3);
+        document.getElementById('analyzingSpinner').classList.add('hidden');
+        document.getElementById('previewActions').classList.remove('hidden');
+
+        if (predictions && predictions.length > 0) {
+          const top = predictions[0];
+          const matchedCategory = mapPredictionToWaste(predictions);
+          const confidence = Math.round(top.probability * 100);
+
+          saveScanRecord(matchedCategory, confidence, false);
+          displayResult(matchedCategory, confidence, false);
+        } else {
+          alert("Could not classify image. Please use manual selection.");
+          openManualSelector();
+        }
+      } catch (err) {
+        console.error(err);
+        document.getElementById('analyzingSpinner').classList.add('hidden');
+        document.getElementById('previewActions').classList.remove('hidden');
+        alert("Error during AI prediction. Please select a category manually.");
+        openManualSelector();
+      }
+    }
+
+    function mapPredictionToWaste(predictions) {
+      for (const p of predictions) {
+        const name = p.className.toLowerCase();
+        if (name.includes('bottle') || name.includes('plastic') || name.includes('jug')) return 'plastic';
+        if (name.includes('carton') || name.includes('paper') || name.includes('box') || name.includes('envelope')) return 'paper';
+        if (name.includes('can') || name.includes('tin') || name.includes('pan') || name.includes('metal')) return 'metal';
+        if (name.includes('wine') || name.includes('beer') || name.includes('glass') || name.includes('jar')) return 'glass';
+        if (name.includes('apple') || name.includes('banana') || name.includes('fruit') || name.includes('food') || name.includes('bread')) return 'organic';
+        if (name.includes('phone') || name.includes('computer') || name.includes('keyboard') || name.includes('mouse') || name.includes('battery')) return 'ewaste';
+      }
+      return 'general';
+    }
+
+    function displayResult(categoryId, confidence, isManual) {
+      const cat = WASTE_CATEGORIES.find(c => c.id === categoryId) || WASTE_CATEGORIES[0];
+      const isTe = currentLang === 'te';
+      const resultArea = document.getElementById('scannerResultArea');
+
+      resultArea.innerHTML = `
+        <div class="result-card">
+          <div class="result-header" style="background: linear-gradient(135deg, ${cat.binColor}, #0f172a);">
+            <div>
+              <span style="font-size: 0.8rem; text-transform: uppercase; font-weight: 700; opacity: 0.85;">${isTe ? 'వర్గీకరణ ఫలితం' : 'Classified Stream'}</span>
+              <h2 style="font-size: 1.8rem; font-weight: 800;">${isTe ? cat.titleTe : cat.titleEn}</h2>
+              <p>${isTe ? cat.taglineTe : cat.taglineEn}</p>
+            </div>
+            <div style="background: rgba(255,255,255,0.25); padding: 0.5rem 1rem; border-radius: 9999px; font-weight: 700;">
+              ${isManual ? (isTe ? 'మాన్యువల్ ఎంపిక' : 'Manual Selection') : `${confidence}% Model Confidence`}
+            </div>
+          </div>
+
+          <div style="padding: 1.75rem;">
+            ${cat.safetyEn ? `
+              <div class="safety-alert-box">
+                <span style="font-size: 1.5rem;">⚠️</span>
+                <div>
+                  <strong style="text-transform: uppercase; font-size: 0.85rem; display: block; margin-bottom: 2px;">
+                    ${isTe ? 'భద్రతా హెచ్చరిక' : 'Safety Warning & Handling'}
+                  </strong>
+                  <span>${isTe ? cat.safetyTe : cat.safetyEn}</span>
+                </div>
+              </div>
+            ` : ''}
+
+            <div class="result-grid">
+              <div class="result-section-box">
+                <div style="font-weight: 800; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">
+                  ${isTe ? 'కేటాయించిన డస్ట్‌బిన్' : 'Designated Municipal Bin'}
+                </div>
+                <div style="font-weight: 800; color: ${cat.binColor}; font-size: 1.15rem;">
+                  ${isTe ? cat.binNameTe : cat.binNameEn}
+                </div>
+                <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.35rem;">
+                  ${isTe ? cat.disposalTe : cat.disposalEn}
+                </div>
+              </div>
+
+              <div class="result-section-box">
+                <div style="font-weight: 800; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">
+                  ${isTe ? 'రీసైక్లింగ్ విధానం' : 'Preparation & Recycling'}
+                </div>
+                <div style="font-size: 0.95rem;">${isTe ? cat.recyclingTe : cat.recyclingEn}</div>
+              </div>
+
+              <div class="result-section-box">
+                <div style="font-weight: 800; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">
+                  ${isTe ? 'పర్యావరణ ప్రయోజనం' : 'Environmental Impact'}
+                </div>
+                <div style="font-size: 0.95rem;">${isTe ? cat.benefitEn : cat.benefitEn}</div>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-top: 1rem;">
+              <button class="btn-secondary" onclick="resetScanner()">
+                ${isTe ? 'మరొక వస్తువును స్కాన్ చేయండి' : 'Scan Another Item'}
+              </button>
+              <button class="btn-primary" onclick="switchPage('dashboard')">
+                ${isTe ? 'డాష్‌బోర్డ్‌కు వెళ్లండి' : 'Go to Dashboard'}
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      resultArea.classList.remove('hidden');
+      document.getElementById('scannerPreviewState').classList.add('hidden');
+    }
+
+    // ==========================================
+    // LOCALSTORAGE & HISTORY
+    // ==========================================
+    function saveScanRecord(category, confidence, isManual) {
+      const record = {
+        category,
+        confidence,
+        isManual,
+        timestamp: new Date().toISOString()
+      };
+      scanHistory.unshift(record);
+      localStorage.setItem('smartwaste_history', JSON.stringify(scanHistory));
+    }
+
+    function renderDashboard() {
+      const total = scanHistory.length;
+      document.getElementById('dashTotalScans').textContent = total;
+
+      const counts = {};
+      scanHistory.forEach(item => counts[item.category] = (counts[item.category] || 0) + 1);
+
+      let topCat = '—';
+      let max = 0;
+      Object.entries(counts).forEach(([cat, cnt]) => {
+        if (cnt > max) {
+          max = cnt;
+          const guide = WASTE_CATEGORIES.find(c => c.id === cat);
+          topCat = guide ? (currentLang === 'te' ? guide.titleTe : guide.titleEn) : cat;
+        }
+      });
+      document.getElementById('dashTopCat').textContent = topCat;
+
+      if (scanHistory[0]) {
+        document.getElementById('dashLastScan').textContent = new Date(scanHistory[0].timestamp).toLocaleDateString(currentLang === 'te' ? 'te-IN' : 'en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      } else {
+        document.getElementById('dashLastScan').textContent = '—';
+      }
+
+      // Render Progress
+      const progressContainer = document.getElementById('dashboardCategoryProgress');
+      progressContainer.innerHTML = WASTE_CATEGORIES.map(cat => {
+        const count = counts[cat.id] || 0;
+        const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+        return `
+          <div style="margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">
+              <span>${currentLang === 'te' ? cat.titleTe : cat.titleEn}</span>
+              <span>${count} (${pct}%)</span>
+            </div>
+            <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+              <div style="width: ${pct}%; height: 100%; background: ${cat.binColor};"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Recent List
+      const recentContainer = document.getElementById('dashboardRecentList');
+      if (scanHistory.length === 0) {
+        recentContainer.innerHTML = `<p style="color: var(--text-muted); font-size: 0.9rem;">No scans logged yet. Start scanning to build history!</p>`;
+      } else {
+        recentContainer.innerHTML = scanHistory.slice(0, 5).map(item => {
+          const guide = WASTE_CATEGORIES.find(c => c.id === item.category);
+          const title = guide ? (currentLang === 'te' ? guide.titleTe : guide.titleEn) : item.category;
+          return `
+            <div style="display: flex; justify-content: space-between; padding: 0.65rem 0.85rem; background: #f8fafc; border-radius: 10px; margin-bottom: 0.5rem; font-size: 0.85rem;">
+              <span style="font-weight: 700;">${title}</span>
+              <span style="color: var(--primary-hover); font-weight: 600;">${item.isManual ? 'Manual' : `${item.confidence}% AI`}</span>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    function renderHistory() {
+      const tbody = document.getElementById('historyTableBody');
+      if (scanHistory.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">Your scan history is empty.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = scanHistory.map((item, index) => {
+        const cat = WASTE_CATEGORIES.find(c => c.id === item.category);
+        const title = cat ? (currentLang === 'te' ? cat.titleTe : cat.titleEn) : item.category;
+        const bin = cat ? (currentLang === 'te' ? cat.binNameTe : cat.binNameEn) : 'Standard';
+        const date = new Date(item.timestamp).toLocaleDateString(currentLang === 'te' ? 'te-IN' : 'en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+        return `
+          <tr>
+            <td>${index + 1}</td>
+            <td style="color: var(--text-muted);">${date}</td>
+            <td style="font-weight: 700;">${title}</td>
+            <td><span style="padding: 0.2rem 0.6rem; border-radius: 999px; background: ${cat?.binColor || '#64748b'}15; color: ${cat?.binColor || '#64748b'}; font-weight: 700; font-size: 0.8rem;">${bin}</span></td>
+            <td>${item.isManual ? '<em>Manual</em>' : `<strong>${item.confidence}%</strong>`}</td>
+            <td style="text-align: right;">
+              <button onclick="deleteScanItem(${index})" style="color: var(--danger); font-weight: 700; font-size: 0.85rem;">Delete</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function deleteScanItem(index) {
+      scanHistory.splice(index, 1);
+      localStorage.setItem('smartwaste_history', JSON.stringify(scanHistory));
+      renderHistory();
+    }
+
+    function clearAllHistory() {
+      if (confirm("Are you sure you want to clear your entire scan history?")) {
+        scanHistory = [];
+        localStorage.setItem('smartwaste_history', JSON.stringify([]));
+        renderHistory();
+      }
+    }
+
+    // ==========================================
+    // MODALS & CAMERA
+    // ==========================================
+    function openManualSelector() {
+      const list = document.getElementById('manualCategoriesList');
+      const isTe = currentLang === 'te';
+      list.innerHTML = WASTE_CATEGORIES.map(cat => `
+        <button onclick="selectManualCategory('${cat.id}')" style="width: 100%; text-align: left; padding: 0.85rem 1rem; border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 0.65rem; background: white; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+          <div>
+            <div style="font-weight: 700; font-size: 1rem;">${isTe ? cat.titleTe : cat.titleEn}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">${isTe ? cat.binNameTe : cat.binNameEn}</div>
+          </div>
+          <span style="color: ${cat.binColor}; font-weight: 800;">→</span>
+        </button>
+      `).join('');
+
+      document.getElementById('manualCategoryModal').classList.remove('hidden');
+    }
+
+    function closeManualSelector() {
+      document.getElementById('manualCategoryModal').classList.add('hidden');
+    }
+
+    function selectManualCategory(catId) {
+      closeManualSelector();
+      saveScanRecord(catId, 0, true);
+      displayResult(catId, 0, true);
+      switchPage('scan');
+    }
+
+    function openModelSettings() {
+      document.getElementById('modelSettingsModal').classList.remove('hidden');
+    }
+
+    function closeModelSettings() {
+      document.getElementById('modelSettingsModal').classList.add('hidden');
+    }
+
+    async function openCameraModal() {
+      const modal = document.getElementById('cameraModal');
+      const video = document.getElementById('cameraVideo');
+      modal.classList.remove('hidden');
+
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        });
+        video.srcObject = cameraStream;
+      } catch (err) {
+        alert("Camera permission denied or camera not available.");
+        closeCameraModal();
+      }
+    }
+
+    function closeCameraModal() {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(t => t.stop());
+        cameraStream = null;
+      }
+      document.getElementById('cameraModal').classList.add('hidden');
+    }
+
+    function captureCameraPhoto() {
+      const video = document.getElementById('cameraVideo');
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+      closeCameraModal();
+
+      document.getElementById('previewImage').src = dataUrl;
+      document.getElementById('scannerUploadState').classList.add('hidden');
+      document.getElementById('scannerPreviewState').classList.remove('hidden');
+      document.getElementById('scannerResultArea').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
